@@ -1,0 +1,80 @@
+[gd_scene format=3 uid="uid://ccvq6lgqqn4fp"]
+
+[ext_resource type="Script" uid="uid://b4fcywjbobapd" path="res://main.gd" id="1_ig7tw"]
+[ext_resource type="PackedScene" uid="uid://vmn5t1e34a2e" path="res://player.tscn" id="2_0xm2m"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_3rmn8"]
+
+[sub_resource type="Sky" id="Sky_762o0"]
+sky_material = SubResource("ProceduralSkyMaterial_3rmn8")
+
+[sub_resource type="Environment" id="Environment_e35kq"]
+background_mode = 2
+sky = SubResource("Sky_762o0")
+
+[node name="Node3D" type="Node3D" unique_id=569067567]
+script = ExtResource("1_ig7tw")
+
+[node name="Player" parent="." unique_id=4388364 instance=ExtResource("2_0xm2m")]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1971054266]
+environment = SubResource("Environment_e35kq")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1989512904]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9713335, 2.7607856)
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=1042182729]
+transform = Transform3D(0.99999994, 0, 0, 0, 0.9999999, 0, 0, 0, 0.99999994, 0, 0, -1.0866003)
+use_collision = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1574984612]
+transform = Transform3D(1, 0, 0, 0, 0.86403847, 0.5034259, 0, -0.5034259, 0.86403847, 0, 0, 0)
+shadow_enabled = true
+
+[node name="Control" type="Control" parent="." unique_id=1947304023]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Control" unique_id=1515448518]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ControlButtons" type="VBoxContainer" parent="Control/HBoxContainer" unique_id=144122652]
+layout_mode = 2
+
+[node name="GetLobbies" type="Button" parent="Control/HBoxContainer/ControlButtons" unique_id=1009033502]
+layout_mode = 2
+text = "Get Lobbies"
+
+[node name="CreateLobby" type="Button" parent="Control/HBoxContainer/ControlButtons" unique_id=1407402156]
+layout_mode = 2
+text = "Create Lobby"
+
+[node name="Button" type="Button" parent="Control/HBoxContainer/ControlButtons" unique_id=1876352454]
+layout_mode = 2
+text = "STUN ME"
+
+[node name="LobbyButtons" type="VBoxContainer" parent="Control/HBoxContainer" unique_id=635044755]
+layout_mode = 2
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="." unique_id=1091185414]
+use_collision = true
+
+[node name="CSGBox3D3" type="CSGBox3D" parent="CSGCombiner3D" unique_id=100527494]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.686157, 1.8999768, -1.237915)
+size = Vector3(1, 6, 15)
+
+[node name="CSGBox3D4" type="CSGBox3D" parent="CSGCombiner3D" unique_id=1203258728]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.313843, 1.8999768, -1.237915)
+size = Vector3(1, 6, 15)
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="CSGCombiner3D" unique_id=486695713]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.056518555, -1.3000115, -0.96984863)
+size = Vector3(22.598389, 1, 13.596436)
+
+[connection signal="pressed" from="Control/HBoxContainer/ControlButtons/GetLobbies" to="." method="_on_get_lobbies_pressed"]
+[connection signal="pressed" from="Control/HBoxContainer/ControlButtons/CreateLobby" to="." method="_on_create_lobby_pressed"]
+[connection signal="pressed" from="Control/HBoxContainer/ControlButtons/Button" to="." method="_on_button_pressed"]

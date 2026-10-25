@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://vmn5t1e34a2e"]
+
+[ext_resource type="Script" uid="uid://deeoydten05ln" path="res://player.gd" id="1_4flbx"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e35kq"]
+albedo_color = Color(1, 0.5921569, 0.21176471, 1)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_e35kq"]
+
+[node name="Player" type="Node3D" unique_id=4388364]
+script = ExtResource("1_4flbx")
+
+[node name="CharacterBody3D" type="CharacterBody3D" parent="." unique_id=568026744]
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CharacterBody3D" unique_id=72835274]
+transform = Transform3D(1, 0, 0, 0, 0.9659258, 0.25881904, 0, -0.25881904, 0.9659258, 0, 0, 0)
+spring_length = 5.0
+
+[node name="Camera3D" type="Camera3D" parent="CharacterBody3D/SpringArm3D" unique_id=1305732943]
+current = true
+
+[node name="CSGSphere3D" type="CSGSphere3D" parent="CharacterBody3D" unique_id=1496162830]
+material = SubResource("StandardMaterial3D_e35kq")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CharacterBody3D" unique_id=1291456525]
+shape = SubResource("SphereShape3D_e35kq")
