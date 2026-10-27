@@ -17,6 +17,8 @@ script = ExtResource("1_ig7tw")
 
 [node name="Player" parent="." unique_id=4388364 instance=ExtResource("2_0xm2m")]
 
+[node name="OtherPlayers" type="Node3D" parent="." unique_id=126883363]
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1971054266]
 environment = SubResource("Environment_e35kq")
 

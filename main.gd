@@ -13,14 +13,25 @@ var _json_header = 'Content-Type: application/json'
 
 var _my_public_ip: String
 
+var _is_host: bool = false
+var _is_hole_alive: bool = false
 var _is_connected: bool = false
+var _peer_map: Dictionary[int, Player] = {}
 
 @onready var _my_player: Player = $Player
+@onready var _control: Control = $Control
 
 func _process(_delta: float) -> void:
 	_socket.poll()
 	
 	var state = _socket.get_ready_state()
+	
+	#if (_is_hole_alive and multiplayer.is_server()):
+		#if (multiplayer.multiplayer_peer.get_available_packet_count()):
+			#var test = multiplayer.multiplayer_peer.get_packet()
+			#print('received packet: ', test.get_string_from_utf8())
+		#
+		#pass
 	
 	if (state != WebSocketPeer.STATE_OPEN):
 		
@@ -49,10 +60,13 @@ func _process(_delta: float) -> void:
 		
 		print('starting hole punching')
 		
-		if (ip == _my_public_ip):
-			_connect_to_peer(local_ip, local_port)
+		var target_ip = local_ip if ip == _my_public_ip else ip
+		var target_port = local_port if ip == _my_public_ip else port
+		
+		if (_is_host):
+			await _connect_to_peer_as_host(target_ip, target_port)
 		else:
-			_connect_to_peer(ip, port)
+			await _connect_to_peer(target_ip, target_port)
 
 func _start_hosting() -> void:
 	var peer = ENetMultiplayerPeer.new()
@@ -62,6 +76,10 @@ func _start_hosting() -> void:
 		return
 	
 	multiplayer.multiplayer_peer = peer
+	var scene_multiplayer = multiplayer as SceneMultiplayer
+	scene_multiplayer.peer_packet.connect(_on_packet_received)
+	scene_multiplayer.peer_connected.connect(_on_peer_joined)
+	_set_connected()
 	print('Connected on Godot Level')
 
 func _join_host(ip: String, port: int) -> void:
@@ -72,6 +90,7 @@ func _join_host(ip: String, port: int) -> void:
 		return
 	
 	multiplayer.multiplayer_peer = peer
+	multiplayer.connected_to_server.connect(_set_connected)
 	print('Connected on Godot Level')
 
 func _on_create_lobby_pressed() -> void:
@@ -97,9 +116,10 @@ func _on_create_lobby_pressed() -> void:
 	var response = await request.request_completed
 	var body = response[RESPONSE_BODY] as PackedByteArray
 	var connection_id = JSON.parse_string(body.get_string_from_utf8())
+	_is_host = true
 	print('Hosting ', connection_id)
+	request.queue_free()
 	_open_web_socket(connection_id)
-	_set_connected()
 	_start_hosting()
 
 func _on_get_lobbies_pressed() -> void:
@@ -188,12 +208,32 @@ func get_address() -> AddressInfo:
 	
 	_my_public_ip = ip
 	return AddressInfo.new(ip, port, local_ip, _port)
+
+func _connect_to_peer_as_host(ip: String, port: int) -> void:
+	var enet_peer = multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	var connection = enet_peer.host
 	
+	for i in range(50):
+		print('trying to connect as host')
+		
+		connection.socket_send(ip, port, 'ping'.to_utf8_buffer())
+		await get_tree().create_timer(0.3).timeout
+		
+		for peer_id in multiplayer.get_peers():
+			var other_peer = enet_peer.get_peer(peer_id)
+			var peer_ip = other_peer.get_remote_address()
+			var peer_port = other_peer.get_remote_port()
+			
+			if (ip == peer_ip and port == peer_port):
+				print('Stopping hole punching')
+				return
+
 func _connect_to_peer(ip: String, port: int) -> void:
 	var udp = PacketPeerUDP.new()
 	udp.set_dest_address(ip, port)
 	var udp_status = udp.bind(_port, '0.0.0.0')
 	if (udp_status != OK):
+		push_error(udp_status)
 		return
 	
 	var connection = false
@@ -210,18 +250,59 @@ func _connect_to_peer(ip: String, port: int) -> void:
 			
 			if (parsed_packet.begins_with('ping')):
 				udp.put_packet('ping'.to_utf8_buffer())
+				udp.close()
+				
 				print('connected')
-				_set_connected()
+				_set_hole_punched()
 				_join_host(ip, port)
 				return
-				
 	
 	if (!connection):
 		push_error('could not connect...')
+	
+	udp.close()
 
 func _input(event: InputEvent) -> void:
 	_my_player.input_buffer.push_event(event)
+	
+	if(event is InputEventMouseMotion or event is InputEventMouseButton):
+		return
+	
+	if (_is_connected and !multiplayer.is_server()):
+		var scene_multiplayer = multiplayer as SceneMultiplayer
+		
+		for action in ActionHelper.convert_to_actions(event):
+			var packet = JSON.stringify({
+				'action': action.action,
+				'pressed': action.pressed,
+				'strength': action.strength
+			}).to_utf8_buffer()
+			#var packet = var_to_bytes(event)
+			scene_multiplayer.send_bytes(packet)
+
+func _set_hole_punched() -> void:
+	_is_hole_alive = true
 
 func _set_connected() -> void:
 	_is_connected = true
-	$Control.hide()
+	_control.hide()
+	print('Fully connected ', 'server' if multiplayer.is_server() else 'client')
+
+func _on_peer_joined(peer_id: int) -> void:
+	var player_scene = preload("res://player.tscn").instantiate()
+	$OtherPlayers.add_child(player_scene)
+	_peer_map.set(peer_id, player_scene)
+
+func _on_packet_received(peer_id: int, packet: PackedByteArray) -> void:
+	var event = JSON.parse_string(packet.get_string_from_utf8())
+	var action = InputEventAction.new()
+	action.action = event['action']
+	action.strength = event['strength']
+	action.pressed = event['pressed']
+	#print('Received ', event)
+	#var event = bytes_to_var(packet)
+	var player = _peer_map.get(peer_id) as Player
+	
+	if (player):
+		player.input_buffer.push_action(action)
+		print('buffered ', action.action)
